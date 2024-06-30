@@ -1,0 +1,72 @@
+---
+title: "ANA 515 Assignment 3"
+author: "Saumya Rajamohan"
+date: "`r Sys.Date()`"
+output: word_document
+---
+```{r, echo=FALSE, message= FALSE, warning=FALSE}
+library(magrittr)
+library(tidyverse)
+library(dplyr)
+library(stringr)
+```
+
+```{r, echo=FALSE, message= FALSE, warning=FALSE}
+# Section 1: Reading data into R
+storms_1991 <- read.csv("C:/Users/saumy/OneDrive/Documents/McDaniel/ANA 515/Week 6/StormEvents_details-ftp_v1.0_d1991_c20220425.csv")
+```
+
+```{r, echo=FALSE, message= FALSE, warning=FALSE}
+# Section 2: Limit the dataframe: select()
+# Section 3: Arrange data by State name: order()
+# Section 4: Change value names to title case: str_to_title()
+# Section 5a: Limit to CZ_TYPE=C: str_to_title()
+substorms<- storms_1991 %>% 
+  select(BEGIN_YEARMONTH, EPISODE_ID, STATE, STATE_FIPS, CZ_NAME, CZ_TYPE, CZ_FIPS, EVENT_TYPE)%>% 
+  arrange(STATE)%>%
+  mutate(across(c(`STATE`, `CZ_NAME`), ~str_to_title(.)))%>%
+  filter(CZ_TYPE=="C")
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Section 5b: Remove CZ_TYPE column: select()
+# Section 6a: Pad STATE_FIPS and CZ_FIPS: str_pad()
+# Section 6b: Unite the padded S_FIPS and C_FIPS columns: unite()
+# Section 7: Rename headers to lower case: rename_all with (tolower)
+substorms91<- substorms%>% 
+  select(BEGIN_YEARMONTH, EPISODE_ID, STATE, STATE_FIPS, CZ_NAME, CZ_FIPS, EVENT_TYPE, -CZ_TYPE) %>%
+  mutate(S_FIPS= str_pad(string=STATE_FIPS, width=3, side = "left", pad = "0")) %>%
+  mutate(C_FIPS= str_pad(string=CZ_FIPS, width=4, side = "left", pad = "0")) %>%
+  unite("FIPS", S_FIPS, C_FIPS, sep = "-")%>%
+  rename_all(tolower)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Section 8: Retrieve US states database from base R
+data("state")
+State_info<-data.frame(state=state.name, region=state.region, area=state.area)
+
+# Section 9a: Create dataframe for number of events/ state: table()
+State_Events<-data.frame(table(substorms91$state)) %>%
+              rename("state"="Var1")
+
+# Section 9b: Merge the 2 dataframes: merge()
+State_Storms<-merge(x=State_Events, y=State_info, by.x = "state", by.y = "state")
+
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Section 10: Plot: ggplot()
+
+library(ggplot2)
+
+ggplot(State_Storms,aes(area,Freq,colour= region)) + 
+  geom_point()+
+
+  labs(x = "Land area (square miles)", 
+       colour="Region",
+       y = "# Storm events in 1991",
+       title = "Storm Events in the US by Land Area in 1991")
+
+``` 
+
